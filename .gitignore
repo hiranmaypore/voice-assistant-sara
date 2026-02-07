@@ -1,0 +1,6 @@
+__pycache__/
+.venv/
+contacts.json
+input.wav
+temp_command.wav
+*.wav
