@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 contacts.json
+whatsapp_chrome_profile/
 input.wav
 temp_command.wav
 *.wav

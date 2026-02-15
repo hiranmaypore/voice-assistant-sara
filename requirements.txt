@@ -3,3 +3,9 @@ torch
 sounddevice
 scipy
 numpy
+pyttsx3
+pyautogui
+pywhatkit
+SpeechRecognition
+selenium
+webdriver-manager

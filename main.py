@@ -214,20 +214,21 @@ def process_command(text):
                 tts.speak(text)
 
     # WHATSAPP CALLING
-    elif "call" in txt_lower and "whatsapp" in txt_lower:
-        # "Call mom on whatsapp"
-        # "Video call dad on whatsapp"
+    elif "call" in txt_lower:
+        # "Call mom"  /  "Call mom on whatsapp"  /  "Video call dad"
         try:
-             # 1. Extract Name
-             # "call [Name]"
              import re
+             from whatsapp_caller import make_call
              match = re.search(r"call (\w+)", txt_lower)
              if match:
                  name = match.group(1).lower()
                  if name in CONTACTS:
                      phone_no = CONTACTS[name]
                      
-                     # Check Mode
+                     if not phone_no:
+                         tts.speak(f"I have {name} in contacts but no phone number saved.")
+                         return
+                     
                      mode = "voice"
                      if "video" in txt_lower:
                          mode = "video"
@@ -236,17 +237,13 @@ def process_command(text):
                      print(f"[AGENT] {response_text}")
                      tts.speak(response_text)
                      
-                     # Open WhatsApp Desktop App directly to content
-                     # Using system command to open custom URI
-                     # This opens the chat
-                     os.system(f"start whatsapp://send?phone={phone_no}")
+                     # Use Selenium-based WhatsApp Web caller
+                     success = make_call(phone_no, mode)
                      
-                     # Allow time for app to open (3s)
-                     time.sleep(3)
-                     
-                     # Attempt to trigger call hotkey (Experimental)
-                     # Ctrl+Shift+Alt+C (Voice) / V (Video) might work in some versions
-                     # Or just leave user in chat
+                     if success:
+                         tts.speak(f"{mode.capitalize()} call started with {name}.")
+                     else:
+                         tts.speak(f"Could not start the call. Please check the browser window.")
                      
                  else:
                      tts.speak(f"I don't have a number for {name}.")
@@ -257,23 +254,23 @@ def process_command(text):
             tts.speak("I couldn't start the call.")
 
     # WHATSAPP MESSAGE
-    elif "whatsapp" in txt_lower and "send" in txt_lower:
-        # "Open WhatsApp and send a message to mom saying hello"
+    elif "send" in txt_lower and ("message" in txt_lower or "to" in txt_lower):
         # "Send a message to mom saying hello"
+        # "Send message to mom saying I'll be late"
         try:
-            # 1. Extract Recipient
-            # "to [Name]"
             import re
             match = re.search(r"to (\w+)", txt_lower)
             if match:
                 name = match.group(1).lower()
                 
-                # Check if contact exists
                 if name in CONTACTS:
                     phone_no = CONTACTS[name]
                     
-                    # 2. Extract Message
-                    # "saying [Message]" or "message [Message]"
+                    if not phone_no:
+                        tts.speak(f"I have {name} in contacts but no phone number saved.")
+                        return
+                    
+                    # Extract Message
                     msg_match = re.search(r"(saying|message|that) (.+)", txt_lower)
                     if msg_match:
                         message = msg_match.group(2).strip()
@@ -282,9 +279,13 @@ def process_command(text):
                         print(f"[AGENT] {response_text}")
                         tts.speak(response_text)
                         
-                        # Send instantly (opens web.whatsapp.com)
-                        # wait_time=15 (wait for browser to open), tab_close=True
-                        pywhatkit.sendwhatmsg_instantly(phone_no, message, wait_time=10, tab_close=True)
+                        # Use same Selenium session as calls (no re-login)
+                        from whatsapp_caller import send_message
+                        success = send_message(phone_no, message)
+                        if success:
+                            tts.speak("Message sent!")
+                        else:
+                            tts.speak("Could not send the message. Check the browser.")
                         
                     else:
                         response_text = "What should I say?"
@@ -298,6 +299,7 @@ def process_command(text):
                 response_text = "To whom should I send the message?"
                 print(f"[AGENT] {response_text}")
                 tts.speak(response_text)
+
         except Exception as e:
             print(f"Error sending WhatsApp: {e}")
             tts.speak("I couldn't send the message.")
